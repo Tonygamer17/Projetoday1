@@ -87,6 +87,30 @@ function PollList({ user, filterType }) {
     setLoading(false);
   };
 
+  const handleDeletePoll = async (pollId) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta enquete e todos os seus votos e opções?')) {
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase
+      .from('polls')
+      .delete()
+      .eq('id', pollId);
+
+    if (error) {
+      alert('Erro ao excluir enquete: ' + error.message);
+    } else {
+      alert('Enquete excluída com sucesso!');
+      fetchPolls(); // Re-fetch polls to update the list
+    }
+    setLoading(false);
+  };
+
+  const handleEditPoll = (poll) => {
+    alert('Função de edição para a enquete: ' + poll.question + ' (ID: ' + poll.id + ')');
+    // Implementar modal de edição aqui
+  };
+
   if (loading) return <p>Carregando enquetes...</p>;
 
   return (
@@ -98,6 +122,7 @@ function PollList({ user, filterType }) {
         polls.map((poll) => {
           const hasUserVoted = votedPolls[poll.id];
           const userSelectedOption = userVotes[poll.id];
+          const isPollCreator = user && poll.user_id === user.id;
 
           let winningOptionId = null;
           let maxVotes = -1;
@@ -116,8 +141,18 @@ function PollList({ user, filterType }) {
           }
           
           return (
-            <div key={poll.id} className="poll-item poll-item-animated">
-              <h3>{poll.question}</h3>
+            <div key={poll.id} className="poll-item poll-item-animated" style={{ position: 'relative' }}>
+              {isPollCreator && (
+                <div className="poll-actions-top-left">
+                  <button className="button edit-button" onClick={() => handleEditPoll(poll)}>
+                    Editar
+                  </button>
+                  <button className="button delete-button" onClick={() => handleDeletePoll(poll.id)}>
+                    Excluir
+                  </button>
+                </div>
+              )}
+              <h3 style={{ marginTop: isPollCreator ? '30px' : '0' }}>{poll.question}</h3>
               {poll.options.map((option) => {
                 const totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes.length, 0);
                 const optionPercentage = totalVotes === 0 ? 0 : (option.votes.length / totalVotes) * 100;
